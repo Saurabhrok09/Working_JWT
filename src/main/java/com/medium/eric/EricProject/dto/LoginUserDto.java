@@ -3,7 +3,7 @@ package com.medium.eric.EricProject.dto;
 public class LoginUserDto {
     private String email;
     private String password;
-
+    
     public String getEmail() {
         return email;
     }

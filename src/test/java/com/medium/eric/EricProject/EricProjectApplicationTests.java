@@ -1,14 +1,18 @@
 package com.medium.eric.EricProject;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.net.http.HttpHeaders;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -16,117 +20,392 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.medium.eric.EricProject.dto.Product;
+import com.medium.eric.EricProject.service.ProductService;
+
 @AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest
 class EricProjectApplicationTests {
+	@Autowired
+	private MockMvc mvc;
 
-	 @Autowired
-	    private MockMvc mvc;
+	@Autowired
+	private ObjectMapper objectMapper;
+	  @MockBean
+	    private ProductService productService;
 
-	    @Autowired
-	    private ObjectMapper objectMapper;
+	String c_u = "jack", s_u = "apple", p = "pass_word";
+	private String adminToken;
+	
+	@Test
+	void contextLoads() {
+	}
 
-	    String c_u = "jack", s_u = "apple", p = "pass_word";
-	    private String adminToken;
+	// open api
+	@Test
+	@Order(2)
+	public void workinngWel() throws Exception {
+		mvc.perform(MockMvcRequestBuilders.get("/users/hi")).andExpect(MockMvcResultMatchers.status().is(200));
+	}
+	// all working 
+	private String getJSONCreds(String username, String password) throws Exception {
+		Map<String, String> creds = new HashMap<>();
+		creds.put("email", username);
+		creds.put("password", password);
+		return objectMapper.writeValueAsString(creds);
+	}
+	 private String getJSONSignupCreds(String email, String password, String fullName) throws Exception {
+	        Map<String, String> map = new HashMap<>();
+	        map.put("email", email);
+	        map.put("password", password);
+	        map.put("fullName", fullName);
+	        return objectMapper.writeValueAsString(map);
+	    }
+
+	    private String getJSONLoginCreds(String email, String password) throws Exception {
+	        Map<String, String> map = new HashMap<>();
+	        map.put("email", email);
+	        map.put("password", password);
+	        return objectMapper.writeValueAsString(map);
+	    }
 
 	    @Test
-	    void contextLoads() {
-	    }
-	    // open api
-	    @Test
-	    @Order(1)
-	    public void workinngWel() throws Exception {
-	        mvc.perform(MockMvcRequestBuilders.get("/users/hi")).andExpect(MockMvcResultMatchers.status().is(200));
-	    }
-	    private String getJSONCreds(String username, String password) throws Exception {
-	       Map<String, String> creds = new HashMap<>();
-	        creds.put("email", username);
-	        creds.put("password", password);
-	        return objectMapper.writeValueAsString(creds);
-	    }
-	    //below api is giving console error 
-	    @Test
-	    @Order(2)
-	    public void consumerLoginWithBadCreds() throws Exception {
-	        mvc.perform(post("/auth/login")
+		@Order(3)
+	    public void signupAndLoginSuccess() throws Exception {
+	        // 1. Signup
+	        String signupEmail = "testsignup@example.com";
+	        String signupPassword = "testpassword123";
+	        String fullName = "Test User";
+
+	        mvc.perform(MockMvcRequestBuilders.post("/auth/signup")
 	                        .contentType(MediaType.APPLICATION_JSON)
-	                        .content(getJSONCreds("bad_username", "password")))
-	                .andExpect(status().is(401));
-	    }
-	    public MockHttpServletResponse loginHelper(String u, String p) throws Exception {
-	        return mvc
-	                .perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(getJSONCreds(u, p)))
-	                .andReturn().getResponse();
-	    }
-	    @Order(3)
-	    public void consumerLoginWithValidCreds() throws Exception {
-	        assertEquals(200, loginHelper(c_u, p).getStatus());
-	        assertNotEquals("", loginHelper(c_u, p).getContentAsString());
-	    }
-	 
-	    @Test
-	    @Order(4)
-	    public void testCreateProduct() throws Exception {
-	        mvc.perform(post("/postProduct")
+	                        .content(getJSONSignupCreds(signupEmail, signupPassword, fullName)))
+	                .andExpect(status().isOk());
+
+	        // 2. Login
+	        MvcResult loginResult = mvc.perform(MockMvcRequestBuilders.post("/auth/login")
 	                        .contentType(MediaType.APPLICATION_JSON)
-	                        .content(getProductDetails("Laptop", 1500, true).toString()))
-	                .andExpect(status().is(403));
-	        //403: Forbidden User is authenticated but does not have permission When the user is logged in 
-	        //but lacks access to a resource A normal user tries to access an admin-only API
-	    }
-	    private String obtainAccessToken(String username, String password) throws Exception {
-	        MvcResult result = mvc.perform(post("/auth/login")
-	                        .contentType(MediaType.APPLICATION_JSON)
-	                        .content(getJSONCreds(username, password)))
+	                        .content(getJSONLoginCreds(signupEmail, signupPassword)))
 	                .andExpect(status().isOk())
+	                .andExpect(jsonPath("$.token").exists())
+	                .andExpect(jsonPath("$.expiresIn").exists())
 	                .andReturn();
+	    }
 
-	        Map<String, String> response = objectMapper.readValue(result.getResponse().getContentAsString(), Map.class);
-	        return response.get("token");
-	    }
-    @Order(4)
-    public void postProductWithValidToken() throws Exception {
-        String token = obtainAccessToken(s_u, p);
-	        mvc.perform(MockMvcRequestBuilders.post("/postProduct")
-	                        .header("Authorization", "Bearer " + token)
+	    @Test
+		@Order(4)
+	    public void loginWithInvalidPassword() throws Exception {
+	        // 1. Signup
+	        String signupEmail = "testsignup2@example.com";
+	        String signupPassword = "testpassword123";
+	        String fullName = "Test User2";
+
+	        mvc.perform(MockMvcRequestBuilders.post("/auth/signup")
 	                        .contentType(MediaType.APPLICATION_JSON)
-	                        .content(getProductDetails("Laptop", 1500, true).toString()))
-	                .andExpect(status().is(200));
+	                        .content(getJSONSignupCreds(signupEmail, signupPassword, fullName)))
+	                .andExpect(status().isOk());
+
+	        mvc.perform(MockMvcRequestBuilders.post("/auth/login")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(getJSONLoginCreds(signupEmail, "invalidPassword")))
+	                .andExpect(status().isUnauthorized());
 	    }
-	    private String getProductDetails(String productName, Integer productCost, boolean isProductAvailable) throws Exception {
-	        Map<String, Object> map = new HashMap<>();
-	        map.put("productName", productName);
-	        map.put("productCost", productCost);
-	        map.put("isProductAvailable", isProductAvailable);
-	        return objectMapper.writeValueAsString(map); // Convert Map to JSON String
+
+	    @Test
+		@Order(5)
+	    public void loginWithNonExistantUser() throws Exception {
+	        mvc.perform(MockMvcRequestBuilders.post("/auth/login")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(getJSONLoginCreds("nonexistent@example.com", "password123")))
+	                .andExpect(status().isUnauthorized());
 	    }
-	    
+	    // all ok 
+//	    
 //	    @Test
-//	    @Order(4)
-//	    public void postProductWithValidToken() throws Exception {
-//	        String token = obtainAccessToken(c_u, p);
+//		@Order(6)
+//	    public void sellerAddNewProductWithAuth() throws Exception {
+//	        // 1. Signup
+//	        String signupEmail = "sellerProductTest@example.com";
+//	        String signupPassword = "testpassword123";
+//	        String fullName = "Seller Product Test User";
 //
-//	        mvc.perform(MockMvcRequestBuilders.post("/postProduct")
+//	        mvc.perform(MockMvcRequestBuilders.post("/auth/signup")
+//	                        .contentType(MediaType.APPLICATION_JSON)
+//	                        .content(getJSONSignupCreds(signupEmail, signupPassword, fullName)))
+//	                .andExpect(status().isOk());
+//
+//	        // 2. Login to get JWT token
+//	        MvcResult loginResult = mvc.perform(MockMvcRequestBuilders.post("/auth/login")
+//	                        .contentType(MediaType.APPLICATION_JSON)
+//	                        .content(getJSONLoginCreds(signupEmail, signupPassword)))
+//	        		  .andExpect(status().isOk())
+//	                .andReturn();
+//
+//	        String responseBody = loginResult.getResponse().getContentAsString();
+//	        String token = objectMapper.readTree(responseBody).get("token").asText();
+//
+//	        // 3. Add new product with JWT token
+//	        mvc.perform(MockMvcRequestBuilders.post("/products") // Assuming this is your product creation endpoint
 //	                        .header("Authorization", "Bearer " + token)
 //	                        .contentType(MediaType.APPLICATION_JSON)
-//	                        .content(getProductDetails("Laptop", 1500, true)))
-//	                .andExpect(status().isCreated());
+//	                        .content(getProduct(0, "iPhone 11", 49000.0, 2, "Electronics").toString()))
+//	                .andExpect(status().isCreated()) // Or whatever status your API returns
+//	                .andExpect(jsonPath("$.name").value("iPhone 11")); // Example assertion
 //	    }
-	    @Order(5)
-	    public void testDeleteProductAsAdmin() throws Exception {
-	    	 String token = obtainAccessToken(c_u, p);
-	        mvc.perform(delete("/product/1")
-	        		  .header("Authorization", "Bearer " + token)
-	                        .contentType(MediaType.APPLICATION_JSON))
-	                .andExpect(status().isOk());
+//	    private JSONObject getProduct(int id, String name, double price, int categoryId, String categoryName) {
+//	        Map<String, Object> categoryMap = new HashMap<>();
+//	        categoryMap.put("id", categoryId);
+//	        categoryMap.put("name", categoryName);
+//
+//	        Map<String, Object> productMap = new HashMap<>();
+//	        productMap.put("id", id);
+//	        productMap.put("name", name);
+//	        productMap.put("price", price);
+//	        productMap.put("category", categoryMap);
+//
+//	        return new JSONObject(productMap);
+//	    }
+	    private MockHttpServletResponse signupHelper(String email, String password, String fullName) throws Exception {
+	        Map<String, String> map = new HashMap<>();
+	        map.put("email", email);
+	        map.put("password", password);
+	        map.put("fullName", fullName);
+	        String requestJson = objectMapper.writeValueAsString(map);
+
+	        return mvc.perform(MockMvcRequestBuilders.post("/auth/signup")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(requestJson))
+	                .andReturn().getResponse();
 	    }
+
+	    private MockHttpServletResponse loginHelper(String email, String password) throws Exception {
+	        Map<String, String> map = new HashMap<>();
+	        map.put("email", email);
+	        map.put("password", password);
+	        String requestJson = objectMapper.writeValueAsString(map);
+
+	        return mvc.perform(MockMvcRequestBuilders.post("/auth/login")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(requestJson))
+	                .andReturn().getResponse();
+	    }
+
+	    private JSONObject getProduct(Integer productId, String productName, Integer productCost, boolean isProductAvailable) {
+	        Map<String, Object> productMap = new HashMap<>();
+	        productMap.put("productId", productId);
+	        productMap.put("productName", productName);
+	        productMap.put("productCost", productCost);
+	        productMap.put("isProductAvailable", isProductAvailable);
+
+	        return new JSONObject(productMap);
+	    }
+
+	    
+	    @BeforeEach
+	    void setUp() {
+	        String jwtToken = "Bearer sample.jwt.token"; // Replace with a real JWT if necessary
+	    }
+
+	    @Test  //6
+	    void testCreateProduct_Success() throws Exception {
+	        Product product = new Product("Shanaya",1,true);
+	        when(productService.createProduct(any(Product.class))).thenReturn(product);
+
+//	        ResultActions response = MockMvc.perform(post("/postProduct")
+//	                .header(HttpHeaders.AUTHORIZATION, jwtToken)
+//	                .contentType(MediaType.APPLICATION_JSON)
+//	                .content(objectMapper.writeValueAsString(product)));
+	        String signupEmail = "productTest@example.com";
+	        String signupPassword = "testpassword123";
+	        String fullName = "Product Test User";
+
+	        signupHelper(signupEmail, signupPassword, fullName);
+
+	        // 2. Login to get JWT token
+	        MockHttpServletResponse loginResponse = loginHelper(signupEmail, signupPassword);
+	        String responseBody = loginResponse.getContentAsString();
+	        String token = objectMapper.readTree(responseBody).get("token").asText();
+
+	        mvc.perform(MockMvcRequestBuilders.post("/products/postProduct")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(getProduct(1, "Shanaya", 99, true).toString()))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.productName").value("Shanaya")); // Adjust assertion to match the field name
+
+	    }
+	    @Test  //7
+	    public void createProductWithoutAuth() throws Exception {
+	        // 3. Create product without JWT token
+	        mvc.perform(MockMvcRequestBuilders.post("/products/postProduct")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(getProduct(0, "ShanayaShanaya", 99, true).toString()))
+	                .andExpect(status().isUnauthorized());
+	    }
+
+//	    @Test  //8
+//	    public void testCreateProductAndGetById() throws Exception {
+//	        // 1. Signup
+//	        String signupEmail = "productTest@example.com";
+//	        String signupPassword = "testpassword123";
+//	        String fullName = "Product Test User";
+//
+//	        signupHelper(signupEmail, signupPassword, fullName);
+//
+//	        // 2. Login to get JWT token
+//	        MockHttpServletResponse loginResponse = loginHelper(signupEmail, signupPassword);
+//	        String responseBody = loginResponse.getContentAsString();
+//	        String token = objectMapper.readTree(responseBody).get("token").asText();
+//
+//	        // 3. Create product
+//	        MvcResult postResult = mvc.perform(MockMvcRequestBuilders.post("/products/postProduct")
+//	                        .header("Authorization", "Bearer " + token)
+//	                        .contentType(MediaType.APPLICATION_JSON)
+//	                        .content(getProduct(1, "Shanaya", 99, true).toString()))
+//	                .andExpect(status().isCreated())
+//	                .andExpect(jsonPath("$.productName").value("Shanaya"))
+//	                .andExpect(status().isCreated())
+//	                .andReturn();
+//	        
+//	        //Extract the product ID if your post response returns it. If not, you may need to find a way to retrieve the created ID.
+//	        //Integer productId = objectMapper.readTree(postResult.getResponse().getContentAsString()).get("productId").asInt();
+//	        String responseBody2 = postResult.getResponse().getContentAsString();
+//	        Integer  productId = objectMapper.readTree(responseBody2).get("productId").asInt(); // Assuming the response has an "productId" field.
+//	   
+//	        // 4. Get product by ID
+//	        mvc.perform(MockMvcRequestBuilders.get("/products/" + productId)
+//	                        .header("Authorization", "Bearer " + token))
+//	                .andExpect(status().isOk())
+//	                .andExpect(jsonPath("$.productName").value("Shanaya"));
+//	    }
+	    @Test
+	    public void deleteProductWithoutAuth() throws Exception {
+	        // 3. Attempt to delete a product without auth(should fail)
+	        mvc.perform(MockMvcRequestBuilders.delete("/products/deleteProduct/1"))
+	                .andExpect(status().isUnauthorized());
+	    }
+	    private MockHttpServletResponse loginAdminHelper(String email, String password) throws Exception {
+	        Map<String, String> map = new HashMap<>();
+	        map.put("email", email);
+	        map.put("password", password);
+	        String requestJson = objectMapper.writeValueAsString(map);
+
+	        return mvc.perform(MockMvcRequestBuilders.post("/auth/login")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(requestJson))
+	                .andReturn().getResponse();
+	    }
+	    private MockHttpServletResponse signupAdminHelper(String email, String password, String fullName) throws Exception {
+	        Map<String, String> map = new HashMap<>();
+	        map.put("email", email);
+	        map.put("password", password);
+	        map.put("fullName", fullName);
+	        map.put("role","ADMIN");
+	        String requestJson = objectMapper.writeValueAsString(map);
+
+	        return mvc.perform(MockMvcRequestBuilders.post("/auth/signup")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(requestJson))
+	                .andReturn().getResponse();
+	    }
+
+//	    @Test
+//	    public void deleteProductAsAdmin() throws Exception {
+//	        // 1. Signup admin user
+//	        String adminEmail = "admin@example.com";
+//	        String adminPassword = "adminpassword";
+//	        String adminFullName = "Admin User";
+//
+//	        signupAdminHelper(adminEmail, adminPassword, adminFullName);
+//
+//	        // 2. Login as admin to get JWT token
+//	        MockHttpServletResponse loginResponse = loginAdminHelper(adminEmail, adminPassword);
+//	        String responseBody = loginResponse.getContentAsString();
+//	        String token = objectMapper.readTree(responseBody).get("token").asText();
+//
+//	        // 3. Create a product (for deletion)
+//	        MvcResult postResult = mvc.perform(MockMvcRequestBuilders.post("/products/postProduct")
+//	                        .header("Authorization", "Bearer " + token)
+//	                        .contentType(MediaType.APPLICATION_JSON)
+//	                        .content(getProduct(1, "Delete Test Product", 99, true).toString()))
+//	                .andExpect(status().isCreated())
+//	                .andReturn();
+//
+//	        // Extract the product ID
+//	        String responseBody2 = postResult.getResponse().getContentAsString();
+//	        Integer productId = objectMapper.readTree(responseBody2).get("productId").asInt();
+//
+//	        // 4. Delete the product as admin
+//	        mvc.perform(MockMvcRequestBuilders.delete("/products/deleteProduct/" + productId)
+//	                        .header("Authorization", "Bearer " + token))
+//	                .andExpect(status().isOk());
+//
+//	        // 5. Attempt to get the deleted product (should fail)
+//	        mvc.perform(MockMvcRequestBuilders.get("/products/" + productId)
+//	                        .header("Authorization", "Bearer " + token))
+//	                .andExpect(status().isBadRequest());
+//	    }
+
+	    @Test
+	    @WithMockUser(username = "user", roles = {"USER"})  // Simulate a non-admin user
+	    void testDeleteProductForbiddenForNonAdmin() throws Exception {
+	    	mvc.perform(delete("/deleteProduct/1")) 
+	                .andExpect(status().isForbidden()); 
+	    }
+//	    @Test
+//	    @WithMockUser(username = "user1", roles = {"SUPER"})  // Simulate a non-admin user
+//	    void testDeleteProductForbiddenForAdmin() throws Exception {
+//	    	mvc.perform(delete("/delByAdmin")) 
+//	                .andExpect(status().isOk()); 
+//	    }
+	   
+	    /*@Test
+	    @WithMockUser( roles = {"ADMIN"})  // Simulate a non-admin user
+	    void testDeleteProductForbiddenForAdminWithoutAuth() throws Exception {
+	    	 Product product = new Product(4,"Nivia",10000,true);
+		        when(productService.createProduct(any(Product.class))).thenReturn(product);
+
+//		        ResultActions response = MockMvc.perform(post("/postProduct")
+//		                .header(HttpHeaders.AUTHORIZATION, jwtToken)
+//		                .contentType(MediaType.APPLICATION_JSON)
+//		                .content(objectMapper.writeValueAsString(product)));
+		        String signupEmail = "sr@example.com";
+		        String signupPassword = "pass";
+		        String fullName = "User2";
+
+		        signupHelper(signupEmail, signupPassword, fullName);
+
+		        // 2. Login to get JWT token
+		        MockHttpServletResponse loginResponse = loginHelper(signupEmail, signupPassword);
+		        String responseBody = loginResponse.getContentAsString();
+		        String token = objectMapper.readTree(responseBody).get("token").asText();
+
+		        mvc.perform(MockMvcRequestBuilders.post("/products/postProduct")
+	                    .header("Authorization", "Bearer " + token)
+	                    .contentType(MediaType.APPLICATION_JSON)
+	                    .content(getProduct(4,"Nivia",10000,true).toString()))
+	            .andExpect(status().isCreated())
+	            .andExpect(jsonPath("$.productId").value(4))
+	            .andExpect(jsonPath("$.productName").value("Nivia"));
+		        
+		        
+	    	mvc.perform(delete("/deleteProduct/4")) 
+	                .andExpect(status().isOk()); 
+	    	*/
+
+	    
+
+		
 }

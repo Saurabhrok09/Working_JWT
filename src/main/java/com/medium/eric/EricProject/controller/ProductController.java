@@ -5,7 +5,9 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.StreamingHttpOutputMessage.Body;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,10 +15,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.medium.eric.EricProject.dto.Product;
+import com.medium.eric.EricProject.repository.ProductRepository;
 import com.medium.eric.EricProject.service.ProductService;
+
+import jakarta.annotation.security.RolesAllowed;
 
 @RestController
 @RequestMapping("/products")
@@ -24,8 +30,10 @@ public class ProductController {
 
 	@Autowired
 	private ProductService productService;
+	  @Autowired
+	    private ProductRepository productRepository;
 
-	@GetMapping
+	@GetMapping("allProducts")
 	public ResponseEntity<List<Product>> getAllProducts() {
 		List<Product> products = productService.getAllProducts();
 		if (products != null && !products.isEmpty()) {
@@ -52,6 +60,10 @@ public class ProductController {
 		} else {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
+//		  "productId" : 1,
+//		    "productName":"Cetaaphil",
+//		     "productCost": 1265,
+//		     "isProductAvailable": true
 	}
 
 	@PutMapping("/{id}")
@@ -67,8 +79,8 @@ public class ProductController {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 	}
-
-	@DeleteMapping("/{id}")
+	@RolesAllowed("ADMIN")
+	@DeleteMapping("deleteProduct/{id}")
 	public ResponseEntity<Void> deleteProduct(@PathVariable Integer id) {
 		Optional<Product> product = productService.getProductById(id);
 		if (product.isPresent()) {
@@ -79,4 +91,20 @@ public class ProductController {
 		}
 
 	}
+	@RolesAllowed("SUPER")
+	@DeleteMapping("delByAdmin")
+	public ResponseEntity<String> delByAdmin() {
+		String str= "got accessed by adm";
+		return new ResponseEntity<>(str, HttpStatus.OK);
+
+	}
+	@GetMapping("/searchByproductCost")
+	public ResponseEntity searchByproductCost (@RequestParam Product productCost) {
+		Optional<Product> li = productRepository.findByProductCost(productCost.getProductCost());
+		if(li.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+		return new ResponseEntity<>(HttpStatusCode.valueOf(200));
+	}
+	
 }

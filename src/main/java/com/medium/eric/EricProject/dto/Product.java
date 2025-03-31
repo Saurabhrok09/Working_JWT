@@ -24,7 +24,12 @@ public class Product {
         this.productCost = productCost;
         this.isProductAvailable = isProductAvailable;
     }
-
+    public Product(Integer productId,String productName, Integer productCost, boolean isProductAvailable) {
+        this.productId=productId;
+    	this.productName = productName;
+        this.productCost = productCost;
+        this.isProductAvailable = isProductAvailable;
+    }
     public Integer getProductId() {
         return productId;
     }
