@@ -12,4 +12,5 @@ import com.medium.eric.EricProject.dto.Product;
 public interface ProductRepository extends JpaRepository<Product, Integer> {
 
 	Optional<Product> findByProductCost(Integer productCost);
+	
 }

@@ -20,6 +20,8 @@ public class ProductService {
     }
 
     public Optional<Product> getProductById(Integer id) {
+    	 System.out.println("getProductById in service called with id: " + id); // Add logging
+         // ... your service logic ...
         return productRepository.findById(id);
     }
 

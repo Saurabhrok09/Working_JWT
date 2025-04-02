@@ -10,13 +10,21 @@ import jakarta.persistence.Id;
 public class Product {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+  //  @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer productId;
     private String productName;
     private Integer productCost;
     private boolean isProductAvailable;
+    private Role role; // Add role field
+    public Role getRole() {
+		return role;
+	}
 
-    // Constructors, getters, setters, toString
+	public void setRole(Role role) {
+		this.role = role;
+	}
+
+	// Constructors, getters, setters, toString
     public Product() {}
 
     public Product(String productName, Integer productCost, boolean isProductAvailable) {
@@ -30,7 +38,16 @@ public class Product {
         this.productCost = productCost;
         this.isProductAvailable = isProductAvailable;
     }
-    public Integer getProductId() {
+    public Product(Integer productId, String productName, Integer productCost, boolean isProductAvailable, Role role) {
+		super();
+		this.productId = productId;
+		this.productName = productName;
+		this.productCost = productCost;
+		this.isProductAvailable = isProductAvailable;
+		this.role = role;
+	}
+
+	public Integer getProductId() {
         return productId;
     }
 
@@ -63,13 +80,9 @@ public class Product {
     }
 
     @Override
-    public String toString() {
-        return "Product{" +
-                "productId=" + productId +
-                ", productName='" + productName + '\'' +
-                ", productCost=" + productCost +
-                ", isProductAvailable=" + isProductAvailable +
-                '}';
-    }
+	public String toString() {
+		return "Product [productId=" + productId + ", productName=" + productName + ", productCost=" + productCost
+				+ ", isProductAvailable=" + isProductAvailable + ", role=" + role + "]";
+	}
 }
 

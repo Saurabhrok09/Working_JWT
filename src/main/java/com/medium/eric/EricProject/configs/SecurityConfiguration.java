@@ -31,7 +31,7 @@ public class SecurityConfiguration {
     	http.csrf(c->c.disable())
     	.authorizeHttpRequests(req->req.requestMatchers("/auth/**","/users/hi").permitAll()
     			.requestMatchers("/deleteProduct/**").hasAnyRole("ADMIN")
-    			.requestMatchers("/products/delByAdmin").hasRole("SUPER")
+    			.requestMatchers("/products/delByAdmin").hasRole("ADMIN")
     			.anyRequest().authenticated()
     			)
     	  .exceptionHandling(e -> e.authenticationEntryPoint(authEntryPoint)) 

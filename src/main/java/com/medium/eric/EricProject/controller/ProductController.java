@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.StreamingHttpOutputMessage.Body;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,26 +33,37 @@ public class ProductController {
 	  @Autowired
 	    private ProductRepository productRepository;
 
-	@GetMapping("allProducts")
-	public ResponseEntity<List<Product>> getAllProducts() {
-		List<Product> products = productService.getAllProducts();
-		if (products != null && !products.isEmpty()) {
-			return new ResponseEntity<>(products, HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
-	}
+	  @GetMapping("/allProducts")
+	  public ResponseEntity<List<Product>> getAllProducts() {
+	      List<Product> products = productService.getAllProducts();
+	      if (products != null && !products.isEmpty()) {
+	          return new ResponseEntity<>(products, HttpStatus.OK);
+	      } else {
+	          return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+	      }
+	  }
 
-	@GetMapping("/{id}")
-	public ResponseEntity<Product> getProductById(@PathVariable Integer id) {
-		Optional<Product> product = productService.getProductById(id);
-		if (product.isPresent()) {
-			return new ResponseEntity<>(product.get(), HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
-	}
-
+//	@GetMapping("/{id}")
+//	public ResponseEntity<Product> getProductById(@PathVariable Integer id) {
+//		Optional<Product> product = productService.getProductById(id);
+//		if (product.isPresent()) {
+//			return new ResponseEntity<>(product.get(), HttpStatus.OK);
+//		} else {
+//			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+//		}
+//	}
+	  @GetMapping("/products/{id}")
+	  public ResponseEntity<?> getProductById(@PathVariable Integer id) {
+	      System.out.println("getProductById called with id: " + id); // Add logging
+	      Optional<Product> product = productService.getProductById(id);
+	      if (product.isPresent()) {
+	          System.out.println("Product found: " + product.get()); // Add logging
+	          return new ResponseEntity<>(product.get(), HttpStatus.OK);
+	      } else {
+	          System.out.println("Product not found"); // Add logging
+	          return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+	      }
+	  }
 	@PostMapping("/postProduct")
 	public ResponseEntity<Product> createProduct(@RequestBody Product product) {
 		if (product != null) {
@@ -91,12 +102,12 @@ public class ProductController {
 		}
 
 	}
-	@RolesAllowed("SUPER")
-	@DeleteMapping("delByAdmin")
+	
+	@DeleteMapping("/delByAdmin")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<String> delByAdmin() {
 		String str= "got accessed by adm";
 		return new ResponseEntity<>(str, HttpStatus.OK);
-
 	}
 	@GetMapping("/searchByproductCost")
 	public ResponseEntity searchByproductCost (@RequestParam Product productCost) {
