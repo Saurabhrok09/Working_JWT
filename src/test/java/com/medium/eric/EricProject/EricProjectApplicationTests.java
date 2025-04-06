@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -359,11 +360,6 @@ class EricProjectApplicationTests {
 //	                .andExpect(status().isBadRequest());
 //	    }
 
-	@Test
-	@WithMockUser(username = "user", roles = { "USER" }) // Simulate a non-admin user
-	void testDeleteProductForbiddenForNonAdmin() throws Exception {
-		mvc.perform(delete("/deleteProduct/1")).andExpect(status().isForbidden());
-	}
 //	    @Test
 //	    @WithMockUser(username = "user1", roles = {"SUPER"})  // Simulate a non-admin user
 //	    void testDeleteProductForbiddenForAdmin() throws Exception {
@@ -439,5 +435,18 @@ class EricProjectApplicationTests {
 //        .andExpect(status().isCreated())
 //        .andExpect(jsonPath("$.productName").value("Shanaya")); 
 
+	}
+
+	@Test
+	@WithMockUser(username = "admin", roles = { "ADMIN" }) // Simulating an admin user
+	void testDelByAdmin_WithAdminRole_ShouldPass() throws Exception {
+		mvc.perform(delete("/products/delByAdmin")).andExpect(status().isOk())
+				.andExpect(content().string("got accessed by adm")); // Optional: Verify response body
+	}
+
+	@Test
+	@WithMockUser(username = "user", roles = { "USER" }) // Simulate a non-admin user
+	void testDeleteProductForbiddenForNonAdmin() throws Exception {
+		mvc.perform(delete("/deleteProduct/1")).andExpect(status().isForbidden());
 	}
 }
