@@ -52,7 +52,7 @@ public class ProductController {
 //			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 //		}
 //	}
-	  @GetMapping("/products/{id}")
+	  @GetMapping("/getProductById/{id}")
 	  public ResponseEntity<?> getProductById(@PathVariable Integer id) {
 	      System.out.println("getProductById called with id: " + id); // Add logging
 	      Optional<Product> product = productService.getProductById(id);

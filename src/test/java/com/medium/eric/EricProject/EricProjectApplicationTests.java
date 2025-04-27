@@ -3,6 +3,7 @@ package com.medium.eric.EricProject;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +32,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medium.eric.EricProject.dto.Product;
 import com.medium.eric.EricProject.dto.Role;
@@ -49,7 +52,10 @@ class EricProjectApplicationTests {
 	@MockBean
 	private ProductService productService;
 
-	String c_u = "jack", s_u = "apple", p = "pass_word";
+	String signupEmail = "testsignup@example.com";
+	String signupPassword = "testpassword123";
+	String fullName = "Test User";
+	
 	private String adminToken;
 
 	@Test
@@ -89,10 +95,6 @@ class EricProjectApplicationTests {
 	@Test
 	@Order(3)
 	public void signupAndLoginSuccess() throws Exception {
-		// 1. Signup
-		String signupEmail = "testsignup@example.com";
-		String signupPassword = "testpassword123";
-		String fullName = "Test User";
 
 		mvc.perform(MockMvcRequestBuilders.post("/auth/signup").contentType(MediaType.APPLICATION_JSON)
 				.content(getJSONSignupCreds(signupEmail, signupPassword, fullName))).andExpect(status().isOk());
@@ -225,6 +227,7 @@ class EricProjectApplicationTests {
 	}
 
 	@Test // 6
+	@Order(6)
 	void testCreateProduct_Success() throws Exception {
 		Product product = new Product("Shanaya", 1, true);
 		when(productService.createProduct(any(Product.class))).thenReturn(product);
@@ -450,4 +453,89 @@ class EricProjectApplicationTests {
 	void testDeleteProductForbiddenForNonAdmin() throws Exception {
 		mvc.perform(delete("/deleteProduct/1")).andExpect(status().isForbidden());
 	}
+	
+//	@Test
+//	public void testAddAndFetchProduct() throws Exception {
+//	    // Setup user credentials
+//	    String signupEmail = "tcs@example.com";
+//	    String signupPassword = "tcs";
+//	    String fullName = "Tcs";
+//
+//	    // Register the user
+//	    signupHelper(signupEmail, signupPassword, fullName);
+//
+//	    // Create Product using parameterized constructor
+//	    Product product = new Product("refriz", 999, true);
+//
+//	    // Mock productService to return this product when createProduct is called
+//	    when(productService.createProduct(any(Product.class))).thenReturn(product);
+//
+//	    // Login and extract token
+//	    MockHttpServletResponse loginResponse = loginHelper(signupEmail, signupPassword);
+//	    String responseBody = loginResponse.getContentAsString();
+//	    String token = objectMapper.readTree(responseBody).get("token").asText();
+//
+//	    // Convert product to JSON
+//	    String productJson = objectMapper.writeValueAsString(product);
+//
+//	    // Post product
+//	    MvcResult postResult = mvc.perform(post("/products/postProduct")
+//	            .contentType(MediaType.APPLICATION_JSON)
+//	            .content(productJson)
+//	            .header("Authorization", "Bearer " + token))
+//	            .andExpect(status().isCreated())
+//	            .andReturn();
+//
+//	    // Simulate fetching the same product by ID and validating fields
+//	    mvc.perform(get("/products/getProductById" + product.getProductId())
+//	            .header("Authorization", "Bearer " + token))
+//	            .andExpect(status().isOk())
+//	            .andExpect(jsonPath("$.productId").isNotEmpty())
+//	            .andExpect(jsonPath("$.productName").value("refriz"))
+//	            .andExpect(jsonPath("$.productCost").value(999))
+//	            .andExpect(jsonPath("$.isProductAvailable").value(true));
+//	        
+//	}
+	private String getProductJson(Integer productId, String name, int price, boolean available) throws JsonProcessingException {
+		 Map<String, Object> product = new HashMap<>();
+		   product.put("productId", productId);
+		    product.put("productName", name);
+		    product.put("productPrice", price);
+		    product.put("available", available);
+	    return objectMapper.writeValueAsString(product);
+	}
+//	@Test
+//	@Order(12)
+//	void createMultipleProducts() throws Exception {
+//	    String signupEmail = "bulkadd@example.com";
+//	    String password = "pass123";
+//	    String fullName = "Bulk Add Tester";
+//
+//	    signupHelper(signupEmail, password, fullName);
+//	    String token = objectMapper.readTree(loginHelper(signupEmail, password).getContentAsString()).get("token").asText();
+//
+//	    Product product = new Product(19, "SAP", 9000, true, Role.ADMIN);
+//		when(productService.createProduct(any(Product.class))).thenReturn(product);
+//	    
+//		MvcResult result1 = mvc.perform(post("/products/postProduct")
+//		        .header("Authorization", "Bearer " + token)
+//		        .contentType(MediaType.APPLICATION_JSON)
+//		        .content(objectMapper.writeValueAsString(product)))
+//		    .andExpect(status().isCreated())
+//		    .andReturn();
+//		
+//		String responseContent = result1.getResponse().getContentAsString();
+//		System.out.println("Product creation response: " + responseContent);
+//
+//		JsonNode responseJson = objectMapper.readTree(responseContent);
+//		Long productId1 = responseJson.get("productId").asLong(); // Change key based on actual JSON
+//
+//
+//	    mvc.perform(get("/products/getProductById/" + product.getProductId() )
+//	            .header("Authorization", "Bearer " + token))
+//	        .andExpect(status().isOk())
+//	        .andExpect(jsonPath("$.productId").isNotEmpty());
+//	}
+
+
 }
